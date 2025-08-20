@@ -19,6 +19,8 @@ setTimeout(function () {
 }, 5000);
 
 $(document).ready(function () {
+    // Clear weather history on page refresh
+    localStorage.removeItem('weatherHistory');
     // Single, clean event handler for weather button
     $('#getWeather').click(function () {
         var city = $('#city').val().trim();
