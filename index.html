@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeatherNow - Your Weather Companion</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Preloader -->
+    <div id="preloader" class="preloader">
+        <div class="preloader-content">
+            <div class="weather-icon-loader">
+                <i class="fas fa-cloud-sun"></i>
+            </div>
+            <div class="loader-spinner"></div>
+            <h2 class="loader-title">WeatherNow</h2>
+            <p class="loader-text">Loading your weather companion...</p>
+        </div>
+    </div>
+
+    <div class="weather-app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="container">
+                <h1 class="app-title">
+                    <i class="fas fa-cloud-sun"></i>
+                    WeatherNow
+                </h1>
+                <p class="app-subtitle">Your personal weather companion</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <!-- Search Section -->
+                <div class="search-section">
+                    <div class="search-container">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="city" class="search-input" placeholder="Enter city name..."
+                                autocomplete="off">
+                            <button id="getWeather" class="search-btn">
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weather Display -->
+                <div id="weatherResult" class="weather-display"></div>
+
+                <!-- Weather History -->
+                <div class="weather-history">
+                    <div id="weatherLogs" class="history-container"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="container">
+                <p class="signature">
+                    <i class="fas fa-code"></i>
+                    Developed and Designed By <span class="developer-name">OlaThatCodes</span>
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="js/script.js"></script>
+</body>
+
+</html>
