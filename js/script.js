@@ -37,6 +37,7 @@ $(document).ready(function () {
             dataType: 'json',
             timeout: 15000, // 15 second timeout
             success: function (weatherData) {
+                console.log('Weather API Response:', weatherData);
                 if (weatherData && weatherData.name) {
                     const weatherIcon = getWeatherIcon(weatherData.weather[0].main);
                     $('#weatherResult').html(
@@ -58,7 +59,7 @@ $(document).ready(function () {
                                 <div class="weather-item">
                                     <i class="fas fa-wind"></i>
                                     <div class="label">Wind Speed</div>
-                                    <div class="value">${weatherData.wind.speed} m/s</div>
+                                    <div class="value">${weatherData.wind && weatherData.wind.speed ? weatherData.wind.speed + ' m/s' : 'N/A'}</div>
                                 </div>
                                 <div class="weather-item">
                                     <i class="fas fa-compress-arrows-alt"></i>
@@ -68,12 +69,12 @@ $(document).ready(function () {
                                 <div class="weather-item">
                                     <i class="fas fa-eye"></i>
                                     <div class="label">Visibility</div>
-                                    <div class="value">${(weatherData.visibility / 1000).toFixed(1)} km</div>
+                                    <div class="value">${weatherData.visibility ? (weatherData.visibility / 1000).toFixed(1) + ' km' : 'N/A'}</div>
                                 </div>
                                 <div class="weather-item">
                                     <i class="fas fa-cloud"></i>
                                     <div class="label">Cloudiness</div>
-                                    <div class="value">${weatherData.clouds.all}%</div>
+                                    <div class="value">${weatherData.clouds && weatherData.clouds.all ? weatherData.clouds.all + '%' : 'N/A'}</div>
                                 </div>
                             </div>
                         </div>`
@@ -96,6 +97,8 @@ $(document).ready(function () {
             },
             error: function (xhr, status, error) {
                 console.error("API Error:", error);
+                console.error("XHR Status:", xhr.status);
+                console.error("Response Text:", xhr.responseText);
                 let errorMessage = 'An error occurred while fetching weather data.';
 
                 if (status === 'timeout') {
