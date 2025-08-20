@@ -30,12 +30,14 @@ $(document).ready(function () {
 
         $('#weatherResult').html('<div class="alert alert-info"><span class="loading"></span>Loading weather data...</div>');
 
+        // Call OpenWeatherMap API directly using config
+        const API_URL = `${WEATHER_CONFIG.API_URL}?q=${encodeURIComponent(city)}&appid=${WEATHER_CONFIG.API_KEY}&units=${WEATHER_CONFIG.UNITS}`;
+
         $.ajax({
-            url: 'src/api.php',
+            url: API_URL,
             method: 'GET',
-            data: { city: city },
             dataType: 'json',
-            timeout: 15000, // 15 second timeout
+            timeout: WEATHER_CONFIG.TIMEOUT,
             success: function (weatherData) {
                 console.log('Weather API Response:', weatherData);
                 if (weatherData && weatherData.name) {
@@ -79,16 +81,17 @@ $(document).ready(function () {
                             </div>
                         </div>`
                     );
-                    fetchWeatherLogs();
-                } else if (weatherData && weatherData.error) {
-                    // Handle API errors with better messages
-                    let errorMessage = weatherData.error;
-                    if (errorMessage.includes('API key')) {
-                        errorMessage = 'Weather service is not properly configured. Please contact the administrator.';
-                    } else if (errorMessage.includes('City not found')) {
+                    // Save to local storage for history (since we don't have a backend)
+                    saveToLocalHistory(weatherData);
+                } else if (weatherData && weatherData.message) {
+                    // Handle OpenWeatherMap API errors
+                    let errorMessage = weatherData.message;
+                    if (errorMessage.toLowerCase().includes('city not found')) {
                         errorMessage = 'City not found. Please check the spelling and try again.';
-                    } else if (errorMessage.includes('Network')) {
-                        errorMessage = 'Network error. Please check your internet connection.';
+                    } else if (errorMessage.toLowerCase().includes('invalid api key')) {
+                        errorMessage = 'Weather service is not properly configured. Please contact the administrator.';
+                    } else {
+                        errorMessage = `Weather service error: ${errorMessage}`;
                     }
                     $('#weatherResult').html(`<div class="alert alert-danger">${errorMessage}</div>`);
                 } else {
@@ -105,12 +108,28 @@ $(document).ready(function () {
                     errorMessage = 'Request timed out. Please check your internet connection and try again.';
                 } else if (xhr.status === 404) {
                     errorMessage = 'City not found. Please check the spelling and try again.';
+                } else if (xhr.status === 401) {
+                    errorMessage = 'Weather service authentication failed. Please try again later.';
                 } else if (xhr.status === 400) {
                     errorMessage = 'Invalid city name. Please use only letters and spaces.';
-                } else if (xhr.status === 500) {
-                    errorMessage = 'Server error. Please try again later or contact support.';
+                } else if (xhr.status === 500 || xhr.status >= 500) {
+                    errorMessage = 'Weather service is temporarily unavailable. Please try again later.';
                 } else if (xhr.status === 0) {
                     errorMessage = 'Network error. Please check your internet connection.';
+                }
+
+                // Try to parse error response from OpenWeatherMap
+                try {
+                    const errorData = JSON.parse(xhr.responseText);
+                    if (errorData && errorData.message) {
+                        if (errorData.message.toLowerCase().includes('city not found')) {
+                            errorMessage = 'City not found. Please check the spelling and try again.';
+                        } else {
+                            errorMessage = `Weather service error: ${errorData.message}`;
+                        }
+                    }
+                } catch (e) {
+                    // Keep the default error message if JSON parsing fails
                 }
 
                 $('#weatherResult').html(`<div class="alert alert-danger">${errorMessage}</div>`);
@@ -135,40 +154,68 @@ $(document).ready(function () {
         }
     });
 
-    // Function to fetch weather logs
-    function fetchWeatherLogs() {
-        $.ajax({
-            url: 'src/fetch_weather.php',
-            method: 'GET',
-            dataType: 'json',
-            timeout: 5000,
-            success: function (logs) {
-                if (logs && logs.length > 0) {
-                    var logsHtml = '<h3 class="history-title"><i class="fas fa-history"></i> Recent Searches</h3><div class="weather-logs">';
-                    logs.forEach(function (log) {
-                        logsHtml += `
-                            <div class="log-item">
-                                <div class="log-city">${log.city}</div>
-                                <div class="log-temp">${Math.round(log.temperature)}°C</div>
-                                <div class="log-desc">${log.description}</div>
-                                <div class="timestamp">${formatDate(log.created_at)}</div>
-                            </div>`;
-                    });
-                    logsHtml += '</div>';
-                    $('#weatherLogs').html(logsHtml);
-                } else {
-                    $('#weatherLogs').html('');
-                }
-            },
-            error: function (xhr, status, error) {
-                console.error("Error fetching logs:", error);
-                $('#weatherLogs').html('<p>Error loading weather logs.</p>');
-            }
-        });
+    // Function to save weather data to local storage
+    function saveToLocalHistory(weatherData) {
+        try {
+            let history = JSON.parse(localStorage.getItem('weatherHistory') || '[]');
+
+            // Create a new entry
+            const newEntry = {
+                city: weatherData.name,
+                country: weatherData.sys.country,
+                temperature: weatherData.main.temp,
+                description: weatherData.weather[0].description,
+                timestamp: new Date().toISOString()
+            };
+
+            // Remove duplicate cities (keep only the latest)
+            history = history.filter(item => item.city.toLowerCase() !== newEntry.city.toLowerCase());
+
+            // Add new entry at the beginning
+            history.unshift(newEntry);
+
+            // Keep only the last 10 entries
+            history = history.slice(0, 10);
+
+            // Save back to localStorage
+            localStorage.setItem('weatherHistory', JSON.stringify(history));
+
+            // Update the display
+            displayWeatherHistory();
+        } catch (error) {
+            console.error('Error saving to local storage:', error);
+        }
     }
 
-    // Load weather logs on page load
-    fetchWeatherLogs();
+    // Function to display weather history from local storage
+    function displayWeatherHistory() {
+        try {
+            const history = JSON.parse(localStorage.getItem('weatherHistory') || '[]');
+
+            if (history && history.length > 0) {
+                let logsHtml = '<h3 class="history-title"><i class="fas fa-history"></i> Recent Searches</h3><div class="weather-logs">';
+                history.forEach(function (log) {
+                    logsHtml += `
+                        <div class="log-item">
+                            <div class="log-city">${log.city}, ${log.country}</div>
+                            <div class="log-temp">${Math.round(log.temperature)}°C</div>
+                            <div class="log-desc">${log.description}</div>
+                            <div class="timestamp">${formatDate(log.timestamp)}</div>
+                        </div>`;
+                });
+                logsHtml += '</div>';
+                $('#weatherLogs').html(logsHtml);
+            } else {
+                $('#weatherLogs').html('');
+            }
+        } catch (error) {
+            console.error('Error loading weather history:', error);
+            $('#weatherLogs').html('');
+        }
+    }
+
+    // Load weather history on page load
+    displayWeatherHistory();
 });
 
 // Helper function to get weather icon based on weather condition
